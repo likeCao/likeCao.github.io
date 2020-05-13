@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    SpringBoot自动装配原理 |  LIKE
+  </title>
+  <meta name="generator" content="hexo-theme-yilia-plus">
+  
+  <link rel="shortcut icon" href="/favicon.ico" />
+  
+  
+<link rel="stylesheet" href="/dist/main.css">
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/pace-js@1.0.2/pace.min.js"></script>
+  
+  
+
+  
+
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    <main class="content on">
+      <section class="outer">
+  <article id="post-SpringBoot自动装配原理" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  SpringBoot自动装配原理
+</h1>
+ 
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/04/18/SpringBoot%E8%87%AA%E5%8A%A8%E8%A3%85%E9%85%8D%E5%8E%9F%E7%90%86/" class="article-date">
+  <time datetime="2020-04-18T12:36:03.335Z" itemprop="datePublished">2020-04-18</time>
+</a>
+      
+      
+      
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> Word count:</span>
+            <span class="post-count">1.5k</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> Reading time≈</span>
+            <span class="post-count">6 min</span>
+        </span>
+    </span>
+</div>
+
+      
+    </div>
+    
+
+    
+    
+    <div class="tocbot"></div>
+
+
+
+
+
+    
+
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+      
+
+      
+      <h2 id="SpringBoot自动装配原理"><a href="#SpringBoot自动装配原理" class="headerlink" title="SpringBoot自动装配原理"></a>SpringBoot自动装配原理</h2><h5 id="本文参考的博客（基本是摘自博客中的内容）："><a href="#本文参考的博客（基本是摘自博客中的内容）：" class="headerlink" title="本文参考的博客（基本是摘自博客中的内容）："></a>本文参考的博客（基本是摘自博客中的内容）：</h5><p>   [引自原文] ( <a href="https://www.jianshu.com/p/83693d3d0a65" target="_blank" rel="noopener">https://www.jianshu.com/p/83693d3d0a65</a>)<br>   [引自原文] (<a href="https://www.jianshu.com/p/10da93ef57d1" target="_blank" rel="noopener">https://www.jianshu.com/p/10da93ef57d1</a>)<br>   1、从@SpringBootApplication启动注解入手</p>
+<blockquote>
+<p>源码<br>   <a id="more"></a></p>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">@Target(ElementType.TYPE)</span><br><span class="line">  @Retention(RetentionPolicy.RUNTIME)</span><br><span class="line"> @Documented</span><br><span class="line">  @Inherited</span><br><span class="line">  @SpringBootConfiguration</span><br><span class="line">  @EnableAutoConfiguration</span><br><span class="line">  @ComponentScan(excludeFilters &#x3D; &#123;</span><br><span class="line">         @Filter(type &#x3D; FilterType.CUSTOM, classes &#x3D; TypeExcludeFilter.class),</span><br><span class="line">          @Filter(type &#x3D; FilterType.CUSTOM, classes &#x3D; AutoConfigurationExcludeFilter.class) &#125;)</span><br><span class="line">  public @interface SpringBootApplication &#123;</span><br><span class="line">  </span><br><span class="line">      @AliasFor(annotation &#x3D; EnableAutoConfiguration.class)</span><br><span class="line">      Class&lt;?&gt;[] exclude() default &#123;&#125;;</span><br><span class="line">      @AliasFor(annotation &#x3D; EnableAutoConfiguration.class)</span><br><span class="line">      String[] excludeName() default &#123;&#125;;</span><br><span class="line">  &#x2F;&#x2F;根据包路径扫描</span><br><span class="line">      @AliasFor(annotation &#x3D; ComponentScan.class, attribute &#x3D; &quot;basePackages&quot;)</span><br><span class="line">      String[] scanBasePackages() default &#123;&#125;;</span><br><span class="line">  &#x2F;&#x2F;直接根据class类扫描</span><br><span class="line">      @AliasFor(annotation &#x3D; ComponentScan.class, attribute &#x3D; &quot;basePackageClasses&quot;)</span><br><span class="line">      Class&lt;?&gt;[] scanBasePackageClasses() default &#123;&#125;;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>   初看@SpringBootApplication有很多的注解组成，其实归纳就是一个”三体”结构，重要的只有三个Annotation：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> &gt;&gt;@Configuration(@SpringBootConfiguration实质就是一个@Configuration）</span><br><span class="line">@EnableAutoConfiguration</span><br><span class="line">@ComponentScan</span><br></pre></td></tr></table></figure>
+<p>   也就是说我们在开发的时候，加上上面的上个注解会等同于加上@SpringBootApplication注解<br>   （1）@Configuration注解</p>
+</blockquote>
+</blockquote>
+<p>   这个注解实际上就是代表了一个配置类，相当于一个beans.xml文件，可以看我的另一篇文章：<br>  [详见原文] (<a href="https://www.jianshu.com/p/81880251a700" target="_blank" rel="noopener">https://www.jianshu.com/p/81880251a700</a>)<br>   （2）@ComponentScan</p>
+<p>   @ComponentScan的功能其实就是自动扫描并加载符合条件的组件或bean定义，最终将这些bean定义加载到容器中，<br>   也可以看另一篇文章：<br>   [详见原文] (<a href="https://www.jianshu.com/p/a00d2b43e160" target="_blank" rel="noopener">https://www.jianshu.com/p/a00d2b43e160</a>)<br>   （3）@EnableAutoConfiguration</p>
+<p>   在spring中有关于@Enablexxx的注解是开启某一项功能的注解，比如@EnableScheduling表示开启spring的定时任务。<br>   其原理是借助@Import的帮助，将所有符合自动配置条件的bean定义加载到Ioc容器。其有关@Import注解的原理可有看：<br>   [详见原文] （<a href="https://www.jianshu.com/p/a00d2b43e160）" target="_blank" rel="noopener">https://www.jianshu.com/p/a00d2b43e160）</a><br>   EnableAutoConfiguration代表开启springboot的自动装配</p>
+<blockquote>
+<blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">@Target(ElementType.TYPE)</span><br><span class="line">  @Retention(RetentionPolicy.RUNTIME)</span><br><span class="line">  @Documented</span><br><span class="line">  @Inherited</span><br><span class="line">    @AutoConfigurationPackage</span><br><span class="line">    @Import(AutoConfigurationImportSelector.class)</span><br><span class="line">    public @interface EnableAutoConfiguration &#123;</span><br><span class="line">        String ENABLED_OVERRIDE_PROPERTY &#x3D; &quot;spring.boot.enableautoconfiguration&quot;;</span><br><span class="line">    &#x2F;&#x2F;按类型排序不需要自动装配的类</span><br><span class="line">        Class&lt;?&gt;[] exclude() default &#123;&#125;;</span><br><span class="line">    &#x2F;&#x2F;按名称排除不需要自动装配的类</span><br><span class="line">        String[] excludeName() default &#123;&#125;;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>   从源码中可以知道，最关键的要属@Import(EnableAutoConfigurationImportSelector.class)，借助<br>   EnableAutoConfigurationImportSelector，@EnableAutoConfiguration可以帮助SpringBoot应用将所有符合条件的<br>   @Configuration配置都加载到当前SpringBoot创建并使用的IoC容器。同时借助于Spring框架原有的一个工具类：<br>   SpringFactoriesLoader，@EnableAutoConfiguration就可以实现智能的自动配置。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"> &gt;&gt;&#x2F;&#x2F;从这里可以看出该类实现很多的xxxAware和DeferredImportSelector，所有的aware都优先于selectImports</span><br><span class="line">&#x2F;&#x2F;方法执行，也就是说selectImports方法最后执行，那么在它执行的时候所有需要的资源都已经获取到了</span><br><span class="line">public class AutoConfigurationImportSelector implements DeferredImportSelector, BeanClassLoaderAware, ResourceLoaderAware, BeanFactoryAware, EnvironmentAware, Ordered &#123;</span><br><span class="line">...</span><br><span class="line">public String[] selectImports(AnnotationMetadata annotationMetadata) &#123;</span><br><span class="line">        if (!this.isEnabled(annotationMetadata)) &#123;</span><br><span class="line">            return NO_IMPORTS;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">&#x2F;&#x2F;1加载META-INF&#x2F;spring-autoconfigure-metadata.properties文件</span><br><span class="line">            AutoConfigurationMetadata autoConfigurationMetadata &#x3D; AutoConfigurationMetadataLoader.loadMetadata(this.beanClassLoader);</span><br><span class="line">&#x2F;&#x2F;2获取注解的属性及其值（PS：注解指的是@EnableAutoConfiguration注解）</span><br><span class="line">            AnnotationAttributes attributes &#x3D; this.getAttributes(annotationMetadata);</span><br><span class="line">&#x2F;&#x2F;3.在classpath下所有的META-INF&#x2F;spring.factories文件中查找org.springframework.boot.autoconfigure.EnableAutoConfiguration的值，并将其封装到一个List中返回</span><br><span class="line">            List&lt;String&gt; configurations &#x3D; this.getCandidateConfigurations(annotationMetadata, attributes);</span><br><span class="line">&#x2F;&#x2F;4.对上一步返回的List中的元素去重、排序</span><br><span class="line">            configurations &#x3D; this.removeDuplicates(configurations);</span><br><span class="line">&#x2F;&#x2F;5.依据第2步中获取的属性值排除一些特定的类</span><br><span class="line">           Set&lt;String&gt; exclusions &#x3D; this.getExclusions(annotationMetadata, attributes);</span><br><span class="line">&#x2F;&#x2F;6对上一步中所得到的List进行过滤，过滤的依据是条件匹配。这里用到的过滤器是</span><br><span class="line">&#x2F;&#x2F;org.springframework.boot.autoconfigure.condition.OnClassCondition最终返回的是一个ConditionOutcome[]</span><br><span class="line">&#x2F;&#x2F;数组。（PS：很多类都是依赖于其它的类的，当有某个类时才会装配，所以这次过滤的就是根据是否有某个</span><br><span class="line">&#x2F;&#x2F;class进而决定是否装配的。这些类所依赖的类都写在META-INF&#x2F;spring-autoconfigure-metadata.properties文件里）</span><br><span class="line">            this.checkExcludedClasses(configurations, exclusions);</span><br><span class="line">            configurations.removeAll(exclusions);</span><br><span class="line">            configurations &#x3D; this.filter(configurations, autoConfigurationMetadata);</span><br><span class="line">            this.fireAutoConfigurationImportEvents(configurations, exclusions);</span><br><span class="line">            return StringUtils.toStringArray(configurations);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  protected List&lt;String&gt; getCandidateConfigurations(AnnotationMetadata metadata, AnnotationAttributes attributes) &#123;</span><br><span class="line">        List&lt;String&gt; configurations &#x3D; SpringFactoriesLoader.loadFactoryNames(this.getSpringFactoriesLoaderFactoryClass(), this.getBeanClassLoader());</span><br><span class="line">        Assert.notEmpty(configurations, &quot;No auto configuration classes found in META-INF&#x2F;spring.factories. If you are using a custom packaging, make sure that file is correct.&quot;);</span><br><span class="line">        return configurations;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>   SpringFactoriesLoader中加载配置,SpringFactoriesLoader属于Spring框架私有的一种扩展方案，其主要功能就是从指定的配置文件<br>   META-INF/spring.factories加载配置,即根据@EnableAutoConfiguration的完整类名org.springframework.boot.autoconfigure.EnableAutoConfiguration<br>   作为查找的Key,获取对应的一组@Configuration类</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">public abstract class SpringFactoriesLoader &#123;</span><br><span class="line">public static final String FACTORIES_RESOURCE_LOCATION &#x3D; &quot;META-INF&#x2F;spring.factories&quot;;</span><br><span class="line">private static Map&lt;String, List&lt;String&gt;&gt; loadSpringFactories(@Nullable ClassLoader classLoader) &#123;</span><br><span class="line">        MultiValueMap&lt;String, String&gt; result &#x3D; cache.get(classLoader);</span><br><span class="line">        if (result !&#x3D; null)</span><br><span class="line">            return result;</span><br><span class="line">        try &#123;</span><br><span class="line">            Enumeration&lt;URL&gt; urls &#x3D; (classLoader !&#x3D; null ?</span><br><span class="line">                    classLoader.getResources(FACTORIES_RESOURCE_LOCATION) :</span><br><span class="line">                    ClassLoader.getSystemResources(FACTORIES_RESOURCE_LOCATION));</span><br><span class="line">            result &#x3D; new LinkedMultiValueMap&lt;&gt;();</span><br><span class="line">            while (urls.hasMoreElements()) &#123;</span><br><span class="line">                URL url &#x3D; urls.nextElement();</span><br><span class="line">                UrlResource resource &#x3D; new UrlResource(url);</span><br><span class="line">                Properties properties &#x3D; PropertiesLoaderUtils.loadProperties(resource);</span><br><span class="line">                for (Map.Entry&lt;?, ?&gt; entry : properties.entrySet()) &#123;</span><br><span class="line">                    List&lt;String&gt; factoryClassNames &#x3D; Arrays.asList(</span><br><span class="line">                            StringUtils.commaDelimitedListToStringArray((String) entry.getValue()));</span><br><span class="line">                    result.addAll((String) entry.getKey(), factoryClassNames);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            cache.put(classLoader, result);</span><br><span class="line">            return result;</span><br><span class="line">        &#125;</span><br><span class="line">        catch (IOException ex) &#123;</span><br><span class="line">            throw new IllegalArgumentException(&quot;Unable to load factories from location [&quot; FACTORIES_RESOURCE_LOCATION + &quot;]&quot;, ex);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>   总结：@EnableAutoConfiguration作用就是从classpath中搜寻所有的META-INF/spring.factories配置文件，并将其中<br>   org.springframework.boot.autoconfigure.EnableutoConfiguration对应的配置项通过反射（Java Refletion）实例化为<br>   对应的标注了@Configuration的JavaConfig形式的IoC容器配置类，然后汇总为一个并加载到IoC容器。这些功能配置类要生效的话，<br>   会去classpath中找是否有该类的依赖类（也就是pom.xml必须有对应功能的jar包才行）并且配置类里面注入了默认属性值类，<br>   功能类可以引用并赋默认值。生成功能类的原则是自定义优先，没有自定义时才会使用自动装配类。<br>   所以功能类能生效需要的条件：<br>   （1）spring.factories里面有这个类的配置类（一个配置类可以创建多个围绕该功能的依赖类）<br>   （2）pom.xml里面需要有对应的jar包</p>
+</blockquote>
+</blockquote>
+<blockquote>
+<p>来源于 》》作者：小manong<br>   [转自链接：] (<a href="https://www.jianshu.com/p/88eafeb3f351" target="_blank" rel="noopener">https://www.jianshu.com/p/88eafeb3f351</a>)<br>来源：简书</p>
+</blockquote>
+
+      
+      <!-- reward -->
+      
+      <div id="reward-btn">
+        Reward
+      </div>
+      
+    </div>
+    
+    
+      <!-- copyright -->
+      
+        <div class="declare">
+          <ul class="post-copyright">
+            <li>
+              <i class="ri-copyright-line"></i>
+              <strong>Copyright： </strong>
+              Copyright is owned by the author. For commercial reprints, please contact the author for authorization. For non-commercial reprints, please indicate the source.
+            </li>
+          </ul>
+        </div>
+        
+    <footer class="article-footer">
+      
+          
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://github.com/likeCao/likeCao.github.io.git/2020/04/18/SpringBoot%E8%87%AA%E5%8A%A8%E8%A3%85%E9%85%8D%E5%8E%9F%E7%90%86/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>
+      
+      
+
+    </footer>
+
+  </div>
+
+  
+  
+  <nav class="article-nav">
+    
+      <a href="/2020/04/18/@Autowired%E5%92%8C@Resource/" class="article-nav-link">
+        <strong class="article-nav-caption">上一篇</strong>
+        <div class="article-nav-title">
+          
+            @Autowired和@Resource
+          
+        </div>
+      </a>
+    
+    
+      <a href="/2020/04/08/Spring%E4%B8%83%E5%A4%A7%E6%A0%B8%E5%BF%83/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">Spring七大核心</div>
+      </a>
+    
+  </nav>
+
+
+  
+
+  
+  
+<!-- valine评论 -->
+<div id="vcomments-box">
+    <div id="vcomments">
+    </div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='https://cdn.jsdelivr.net/npm/valine@1.3.10/dist/Valine.min.js'></script>
+<script>
+    new Valine({
+        el: '#vcomments',
+        app_id: '',
+        app_key: '',
+        path: window.location.pathname,
+        notify: 'false',
+        verify: 'false',
+        avatar: 'mp',
+        placeholder: '给我的文章加点评论吧~',
+        recordIP: true
+    });
+    const infoEle = document.querySelector('#vcomments .info');
+    if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+        infoEle.childNodes.forEach(function (item) {
+            item.parentNode.removeChild(item);
+        });
+    }
+</script>
+<style>
+    #vcomments-box {
+        padding: 5px 30px;
+    }
+
+    @media screen and (max-width: 800px) {
+        #vcomments-box {
+            padding: 5px 0px;
+        }
+    }
+
+    #vcomments-box #vcomments {
+        background-color: #fff;
+    }
+
+    .v .vlist .vcard .vh {
+        padding-right: 20px;
+    }
+
+    .v .vlist .vcard {
+        padding-left: 10px;
+    }
+</style>
+
+  
+
+  
+  
+  
+
+</article>
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul class="list-inline">
+      <li>
+        &copy;
+        2019-2020
+        likeCao
+      </li>
+      <li>
+        
+      </li>
+    </ul>
+    <ul class="list-inline">
+      <li>
+        
+        
+        <span>
+  <i>PV:<span id="busuanzi_value_page_pv"></span></i>
+  <i>UV:<span id="busuanzi_value_site_uv"></span></i>
+</span>
+        
+      </li>
+      
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+      <div class="float_btns">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+
+<div class="todark" id="todark">
+  <i class="ri-moon-line"></i>
+</div>
+
+      </div>
+    </main>
+    <aside class="sidebar on">
+      <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/tx.jpg" alt="LIKE"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags/%E6%97%85%E8%A1%8C/">旅行</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">摄影</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/forme">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+    </aside>
+    <script>
+      if (window.matchMedia("(max-width: 768px)").matches) {
+        document.querySelector('.content').classList.remove('on');
+        document.querySelector('.sidebar').classList.remove('on');
+      }
+    </script>
+    <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>可以给我充充电嘛~—#—~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+    
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+
+<script>
+  try {
+    var typed = new Typed("#subtitle", {
+      strings: ['面朝大海，春暖花开', '愿你一生努力，一生被爱', '想要的都拥有，得不到的都释怀'],
+      startDelay: 0,
+      typeSpeed: 200,
+      loop: true,
+      backSpeed: 100,
+      showCursor: true
+    });
+  } catch (err) {
+  }
+
+</script>
+
+
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  // Tocbot_v4.7.0  http://tscanlin.github.io/tocbot/
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer: 'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto'
+  });
+</script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+<script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.7.0/dist/js/jquery.justifiedGallery.min.js"></script>
+
+<script src="/dist/main.js"></script>
+
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.min.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+
+
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+
+<script type="text/javascript" src="https://js.users.51.la/20544303.js"></script>
+
+  
+<script src="/js/clickLove.js"></script>
+
+
+
+    
+    <div id="music">
+    
+    
+    
+    <iframe frameborder="no" border="1" marginwidth="0" marginheight="0" width="200" height="52"
+        src="//music.163.com/outchain/player?type=2&id=1422625839&auto=1&height=32"></iframe>
+</div>
+
+<style>
+    #music {
+        position: fixed;
+        right: 15px;
+        bottom: 0;
+        z-index: 998;
+    }
+</style>
+    
+  </div>
+</body>
+
+</html>

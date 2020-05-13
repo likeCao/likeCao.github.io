@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于我</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/semantic-ui/2.2.4/semantic.min.css">
+</head>
+<body  style="margin-top:50px;" >
+<!--中间内容-->
+<div class="m-container m-padded-tb-big animated fadeIn">
+    <div class="ui container">
+
+        <div class="ui stackable grid">
+            <div class="eleven wide column">
+                <div class="ui segment">
+                   <img  src="/images/like1.jpg" alt="" class="ui rounded image">
+                </div>
+            </div>
+            <div class="five wide column">
+                <div class="ui top attached segment">
+                    <div class="ui header">关于我</div>
+                </div>
+                <div class="ui attached segment">
+                    <p class="m-text">曹立科，一个爱折腾爱探索的阳光青年，渴望走向编程世界的程序曹，这是我的一个hexo博客，我会与大家分享我的收获和喜悦，一起成长一起努力。#like谦让，进取，不辜负野心...</p>
+                    <br/>
+                    <p class="m-text">热爱编程，喜欢折腾，在未知的世界不断探索的程序曹...</p>
+                </div>
+                <div class="ui attached segment">
+                    <div class="ui orange basic left pointing label">编程</div>
+                    <div class="ui orange basic left pointing label">写作</div>
+                    <div class="ui orange basic left pointing label">拍摄</div>
+                    <div class="ui orange basic left pointing label">运动</div>
+                </div>
+                <div class="ui attached segment">
+                    <div class="ui teal basic left pointing label m-margin-tb-tiny">Java</div>
+                    <div class="ui teal basic left pointing label m-margin-tb-tiny">JavaScript</div>
+                    <div class="ui teal basic left pointing label m-margin-tb-tiny">MYSQL</div>
+                    <div class="ui teal basic left pointing label m-margin-tb-tiny">拍摄</div>
+                    <div class="ui teal basic left pointing label m-margin-tb-tiny">文享</div>
+                    <div class="ui teal basic left pointing label m-margin-tb-tiny">运动</div>
+                    <div class="ui teal basic left pointing label m-margin-tb-tiny">...</div>
+                </div>
+                <div class="ui bottom attached segment">
+                    <a href="https://github.com/likeCao/likeCao.github.io.git" class="ui circular icon button"><i class="github icon"></i></a>
+                    <a class="ui weichat  circular icon button" data-content="clk2267341685"><i class="weixin icon"></i></a>
+                    <a href="#" class="ui qq circular icon button" data-content="2267341685" data-position="bottom center"><i class="qq icon"></i></a>
+                </div>
+
+        </div>
+
+    </div>
+</div>
+<!--/*/<th:block th:replace="_fragments :: script">/*/-->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.2/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/semantic-ui/2.2.4/semantic.min.js"></script>
+<!--/*/</th:block>/*/-->
+
+<script>
+
+   $('.weichat').popup();
+    $('.qq').popup();
+
+</script>
+</body>
+</html>
